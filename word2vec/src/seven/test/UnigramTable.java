@@ -10,7 +10,7 @@ public class UnigramTable {
 		this.table = new int[TABLE_SIZE];
 		init(vocab_table);
 	}
-	
+
 	public UnigramTable() {
 		this.table = new int[TABLE_SIZE];
 	}
@@ -34,7 +34,7 @@ public class UnigramTable {
 				i = n - 1;
 		}
 	}
-	
+
 	public int random(Random rnd) {
 		return table[rnd.nextInt(TABLE_SIZE)];
 	}

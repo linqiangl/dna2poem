@@ -2,18 +2,22 @@ package seven.test;
 
 public class VocabWord implements Comparable<VocabWord> {
 	public static final int MAX_CODE_LENGTH = 40;
-	
+
 	public String word;
 	public long count;
 	public byte[] code;
 	public int codelen;
 	public int[] point;
-	
+	public double[] vec;
+	public double score;
+
 	public VocabWord() {
-		code = new byte[MAX_CODE_LENGTH];
-		point = new int[MAX_CODE_LENGTH];
+		this.code = new byte[MAX_CODE_LENGTH];
+		this.point = new int[MAX_CODE_LENGTH];
+		this.vec = null;
+		this.score = 0.0;
 	}
-	
+
 	@Override
 	public int compareTo(VocabWord another) {
 		if (another.count > count) {

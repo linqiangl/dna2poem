@@ -24,67 +24,63 @@ public class Trainer {
 
 	public Trainer() {
 		this(
-			/* alpha = */ 0.025,
-			/* sample = */ 1e-3,
-			/* layer = */ 100,
-			/* min_count = */ 5,
-			/* min_reduce = */ 1,
-			/* hs = */ false,
-			/* cbow = */ true,
-			/* window = */ 5,
-			/* negative = */ 5,
-			/* binary = */ false,
-			/* iter = */ 5,
-			/* threads = */ 12);
+			/* alpha = */ 0.025, /* sample = */ 1e-3, /* layer = */ 100,
+			/* min_count = */ 5, /* min_reduce = */ 1, /* hs = */ false,
+			/* cbow = */ true, /* window = */ 5, /* negative = */ 5,
+			/* binary = */ false, /* iter = */ 5, /* threads = */ 12);
 	}
-	
+
 	public Trainer set(String key, String value) {
-		if("alpha".equals(key)) {
+		if ("alpha".equals(key)) {
 			this.alpha = Double.parseDouble(value);
 			return this;
 		}
-		if("sample".equals(key)) {
+		if ("sample".equals(key)) {
 			this.sample = Double.parseDouble(value);
 			return this;
 		}
-		if("layer".equals(key)) {
+		if ("layer".equals(key)) {
 			this.layer = Integer.parseInt(value);
 			return this;
 		}
-		if("min_count".equals(key)) {
+		if ("min_count".equals(key)) {
 			this.min_count = Integer.parseInt(value);
 			return this;
 		}
-		if("min_reduce".equals(key)) {
+		if ("min_reduce".equals(key)) {
 			this.min_reduce = Integer.parseInt(value);
 			return this;
 		}
-		if("hs".equals(key)) {
+		if ("hs".equals(key)) {
 			this.hs = Boolean.parseBoolean(value);
 			return this;
 		}
-		if("cbow".equals(key)) {
+		if ("cbow".equals(key)) {
 			this.cbow = Boolean.parseBoolean(value);
 			return this;
 		}
-		if("window".equals(key)) {
+		if ("window".equals(key)) {
 			this.window = Integer.parseInt(value);
 			return this;
 		}
-		if("negative".equals(key)) {
+		if ("negative".equals(key)) {
 			this.negative = Integer.parseInt(value);
 			return this;
 		}
-		if("binary".equals(key)) {
+		if ("binary".equals(key)) {
 			this.binary = Boolean.parseBoolean(value);
 			return this;
 		}
-		if("iter".equals(key)) {
+		if ("iter".equals(key)) {
 			this.iter = Integer.parseInt(value);
 			return this;
 		}
-		if("threads".equals(key)) {
+		if ("threads".equals(key)) {
 			this.threads = Integer.parseInt(value);
+			return this;
+		}
+		if ("trainfile".equals(key)) {
+			this.trainfile = value;
 			return this;
 		}
 		return this;
@@ -148,14 +144,13 @@ public class Trainer {
 		return this;
 	}
 
-	public Trainer trainFile(String filename) {
-		this.trainfile = filename;
-		return this;
-	}
-	
 	public Trainer reset() {
 		vocab_table = null;
 		return this;
+	}
+
+	public Trainer load(boolean new_one) {
+		return load(trainfile, true, new_one);
 	}
 
 	public Trainer load(String filename, boolean count, boolean new_one) {
@@ -190,7 +185,25 @@ public class Trainer {
 		running = false;
 		return this;
 	}
-	
+
+	public void result() {
+		int a = 0;
+		for (VocabWord v : vocab_table) {
+			v.vec = new double[layer];
+			System.arraycopy(syn0, a * layer, v.vec, 0, layer);
+			// normalize vector
+			double mod = 0;
+			for (double x : v.vec) {
+				mod += x * x;
+			}
+			mod = Math.sqrt(mod);
+			for (int j = 0; j < v.vec.length; j++) {
+				v.vec[j] /= mod;
+			}
+			a ++;
+		}
+	}
+
 	public Trainer saveVocabs(String filename) {
 		vocab_table.save(filename);
 		return this;
@@ -275,11 +288,11 @@ public class Trainer {
 					writer.write(v.word.getBytes());
 					writer.write(' ');
 					for (int b = 0; b < layer; b++) {
-						/*
-                                                 * if you would like to make output compatible with Google word2vec in C version,
-                                                 * use wirte_int:
-                                                 * write_int(writer, Float.floatToRawIntBits((float)syn0[a * layer + b]));
-                                                 */
+                                               /*
+                                                * if you would like to make output compatible with Google word2vec in C version,
+                                                * use wirte_int:
+                                                * write_int(writer, Float.floatToRawIntBits((float)syn0[a * layer + b]));
+                                                */
 						write_long(writer, Double.doubleToRawLongBits(syn0[a * layer + b]));
 					}
 					a++;
@@ -308,7 +321,7 @@ public class Trainer {
 		return this;
 	}
 
-	private static void write_long(OutputStream out, long x) throws Exception {
+	public static void write_long(OutputStream out, long x) throws Exception {
 		out.write((int) ((x >>> 0) & 0xff));
 		out.write((int) ((x >>> 8) & 0xff));
 		out.write((int) ((x >>> 16) & 0xff));
@@ -319,14 +332,14 @@ public class Trainer {
 		out.write((int) ((x >>> 56) & 0xff));
 	}
 
-	private static void write_int(OutputStream out, int x) throws Exception {
+	protected static void write_int(OutputStream out, int x) throws Exception {
 		out.write((int) ((x >>> 0) & 0xff));
 		out.write((int) ((x >>> 8) & 0xff));
 		out.write((int) ((x >>> 16) & 0xff));
 		out.write((int) ((x >>> 24) & 0xff));
 	}
 
-	private static class TrainerThread extends Thread {
+	protected static class TrainerThread extends Thread {
 		private static final int MAX_SENTENCE_LENGTH = 4096;
 
 		private int id, iter, layer, threads, window, negative;
@@ -609,11 +622,18 @@ public class Trainer {
 	public static void main(String[] args) {
 		// wget http://mattmahoney.net/dc/text8.zip
 		// unzip text8.zip
-		String input = "text8";
+		String path = "";
 		Trainer t = new Trainer();
-		t.set("binary", "true").trainFile(input).load(input, true, true).netlink().train();
-		t.saveVocabs("vocab.txt");
-		t.saveClasses("classes.txt", 500);
-		t.saveVector("vectors.bin");
+		t.set("binary", "true").set("trainfile", path + "text8").load(path + "text8", true, true).netlink().train();
+		t.saveVocabs(path + "vocab.txt");
+		t.saveClasses(path + "classes.txt", 500);
+		t.saveVector(path + "vector.bin");
+
+		VocabTable v = new VocabTable();
+		v.vector(path + "vector.bin", 4, true);
+		VocabWord[] ws = v.suggested(new String[] {"world", "war"}, 100);
+		for (VocabWord word : ws) {
+			System.out.printf("%20s %f\n", word.word, word.score);
+		}
 	}
 }

@@ -8,19 +8,19 @@ public class Tokenizer {
 	public static final int BUF_WINDOW_LENGTH = 4096;
 	public static final int BUF_LENGTH = BUF_WINDOW_LENGTH * 2;
 	public static final int MAX_WORD_LENGTH = BUF_WINDOW_LENGTH / 2;
-	
+
 	private InputStream input;
 	private byte[] buf;
 	private int windowlen;
 	private int page;
 	private int cursor;
-	
+
 	public Tokenizer(InputStream input) {
 		this.input = input;
 		buf = new byte[BUF_LENGTH];
 		firstload();
 	}
-	
+
 	public boolean eof() {
 		try {
 			if (input.available() == 0 && cursor >= windowlen) {
@@ -31,11 +31,11 @@ public class Tokenizer {
 		}
 		return false;
 	}
-	
+
 	public int seek() {
 		return page * BUF_WINDOW_LENGTH + cursor;
 	}
-	
+
 	private void postcut() {
 		if (windowlen > BUF_WINDOW_LENGTH) {
 			System.arraycopy(buf, BUF_WINDOW_LENGTH, buf, 0, BUF_WINDOW_LENGTH);
@@ -44,7 +44,7 @@ public class Tokenizer {
 			page ++;
 		}
 	}
-	
+
 	private void preload() {
 		try {
 			int read = input.read(buf, BUF_WINDOW_LENGTH, BUF_WINDOW_LENGTH);
@@ -53,7 +53,7 @@ public class Tokenizer {
 			// TODO: handle i/o error
 		}
 	}
-	
+
 	private void firstload() {
 		try {
 			int read = input.read(buf, 0, BUF_WINDOW_LENGTH);
@@ -64,11 +64,11 @@ public class Tokenizer {
 			// TODO: handle i/o error
 		}
 	}
-	
+
 	public String next() {
 		return this.next("UTF-8");
 	}
-	
+
 	public String next(String encoding) {
 		postcut();
 		byte[] str = new byte[MAX_WORD_LENGTH];
