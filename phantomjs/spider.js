@@ -1,3 +1,5 @@
+// usage: phantomjs spider.js <url>
+
 var system = require('system');
 
 function text_walker(text, stop) {
@@ -52,12 +54,22 @@ function text_walker(text, stop) {
     },
     next: function () {
       if (cursor >= n) return null;
-      var word, ch;
+      var word, ch, ch_code;
       word = '';
       while (cursor < n) {
         ch = text.charAt(cursor);
+        ch_code = text.charCodeAt(cursor);
         cursor ++;
         if (stop.indexOf(ch) >= 0) break;
+        if (ch_code > 255) {
+          if (!!word) {
+            ch = '';
+            cursor --;
+            break;
+          } else {
+            return {word: ch, stop: ''};
+          }
+        }
         word += ch;
       }
       return {word: word, stop: ch};
