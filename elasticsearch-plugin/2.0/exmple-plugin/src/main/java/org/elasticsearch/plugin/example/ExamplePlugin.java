@@ -26,6 +26,10 @@ import org.elasticsearch.script.ScriptException;
 import org.elasticsearch.search.lookup.IndexField;
 import org.elasticsearch.search.lookup.IndexFieldTerm;
 
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.SearchHit;
+
 public class ExamplePlugin extends Plugin {
 
     @Inject public ExamplePlugin(Settings settings) {
@@ -56,6 +60,12 @@ public class ExamplePlugin extends Plugin {
         public void handleRequest(RestRequest request, RestChannel channel, Client client) throws Exception {
             String who = request.param("who", null);
             if (who == null) who = "world";
+            SearchResponse result = client.prepareSearch().execute().actionGet();
+            SearchHits htis = result.getHits();
+            long n = hits.totalHits();
+            for (SearchHit one : hits.getHits()) {
+                System.out.println(one.getId());
+            }
             sendResponse(request, channel, who);
         }
 
