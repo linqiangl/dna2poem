@@ -1,19 +1,23 @@
 class GraphNode(object):
     def __init__(self):
+        self.reset()
+
+    def __str__(self):
+        if self._strcache is None:
+            self._strcache = "<GraphNode %s>" % str(self.data)
+        return self._strcache
+
+    def __repr__(self):
+        return self.__str__()
+
+    def reset(self):
         self.type = 0
         self.data = None
         self.index = {}
         self.hole = []
         self.nodes = []
         self._strcache = None
-
-    def __str__(self):
-        if self._strcache is None:
-            self._strcache = str(self.data)
-        return self._strcache
-
-    def __repr__(self):
-        return self.__str__()
+        return self
 
     def contains(self, node):
         return id(node) in self.index
@@ -82,6 +86,7 @@ class GraphNode(object):
                     callback(node)
             queue = next_level
             next_level = []
+        return self
 
     def tranverse_dfs(self, callback=None, filter=None):
         if filter is None:
@@ -115,6 +120,77 @@ class GraphNode(object):
                 visit[k] = (n + m) - (visit[k] - n) - 1
             queue = queue + next_level
             next_level = []
+        return self
+
+    def debug_data_encode(self, data):
+        if data is None:
+            return ""
+        return data
+
+    def debug_data_decode(self, data):
+        if len(data) == 0:
+            return None
+        return data
+
+    """
+    line := id type data | id links
+    data := <b64encode>data
+    links := id id id ...
+    e.g
+    0 0 aJwov2wP03nJ==
+    1 0 ovq9A0fwT3aqf1
+
+    0 1
+    1 0
+    """
+    def debug_load(self, filename, data_decode=None):
+        import base64
+        self.reset()
+        if data_decode is None:
+            data_decode = self.debug_data_decode
+        id_node_map = {}
+        f = open(filename, "r")
+        for line in f:
+            line = line[:-1]
+            if len(line) == 0:
+                break
+            line = line.split(' ')
+            node_id = int(line[0])
+            node = GraphNode()
+            node.type = int(line[1])
+            node.data = data_decode(base64.b64decode(line[2]))
+            self.link(node)
+            id_node_map[node_id] = node
+        for line in f:
+            line = line.split(' ')
+            node_id = int(line[0])
+            node = id_node_map[node_id]
+            line = line[1:]
+            for one_id in line:
+                node.link(id_node_map[int(one_id)])
+        f.close()
+        return self
+
+    def debug_save(self, filename, data_encode=None):
+        import base64
+        if data_encode is None:
+            data_encode = self.debug_data_encode
+        f = open(filename, "w+")
+        for node in self.nodes:
+            f.write("%d %d %s\n" % (
+                self.index[id(node)],
+                node.type,
+                base64.b64encode(data_encode(node.data)),
+            ))
+        for node in self.nodes:
+            if len(node.nodes) == 0:
+                continue
+            f.write("\n%d %s" % (
+                self.index[id(node)],
+                " ".join([str(self.index[id(one)]) for one in node.nodes]),
+            ))
+        f.close()
+        return self
 
     def debug_random_walk(self):
         import random
