@@ -1,6 +1,7 @@
 class GraphNode(object):
-    def __init__(self):
+    def __init__(self, data=None):
         self.reset()
+        self.data = data
 
     def __str__(self):
         if self._strcache is None:
@@ -12,7 +13,6 @@ class GraphNode(object):
 
     def reset(self):
         self.type = 0
-        self.data = None
         self.index = {}
         self.hole = []
         self.nodes = []
@@ -83,7 +83,9 @@ class GraphNode(object):
                     next_level.append(one)
                     visit[id(one)] = -1
                 if callback is not None:
-                    callback(node)
+                    # search can be interrupted by callback
+                    if callback(node) is not None:
+                        return self
             queue = next_level
             next_level = []
         return self
@@ -112,7 +114,8 @@ class GraphNode(object):
                 visit[id(one)] = n + len(next_level)
                 next_level.append(one)
             if callback is not None:
-                callback(node)
+                if callback(node) is not None:
+                    return self
             next_level.reverse()
             m = len(next_level)
             for i, one in enumerate(next_level):
