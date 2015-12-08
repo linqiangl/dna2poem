@@ -1,11 +1,12 @@
 class GraphNode(object):
-    def __init__(self, data=None):
+    def __init__(self, name=None):
         self.reset()
-        self.data = data
+        self.name = name
+        self.data = None
 
     def __str__(self):
         if self._strcache is None:
-            self._strcache = "<GraphNode %s>" % str(self.data)
+            self._strcache = "<GraphNode %s>" % str(self.name)
         return self._strcache
 
     def __repr__(self):
@@ -19,8 +20,102 @@ class GraphNode(object):
         self._strcache = None
         return self
 
+    def fill(self, data):
+        self.data = data
+        return self
+
     def contains(self, node):
         return id(node) in self.index
+
+    def get_one(self, name):
+        for node in self.nodes:
+            if node.name == name: return node
+        return None
+
+    def get_all(self, name):
+        result = []
+        for node in self.nodes:
+            if node.name == name: result.append(node)
+        return result
+
+    def get_floor(self, filter=None):
+        result = [self]
+        if filter is None:
+            filter = self._filter
+        visit = {}
+        cursor = 0
+        while cursor < len(result):
+            node = result[cursor]
+            visit[id(node)] = -1
+            for one in filter(node.nodes):
+                if one is None:
+                    continue
+                if id(one) in visit:
+                    continue
+                visit[id(one)] = -1
+                if one.type != self.type:
+                    continue
+                result.append(one)
+            cursor += 1
+        return result
+
+    def get_wall(self, filter=None):
+        result = []
+        floor = [self]
+        if filter is None:
+            filter = self._filter
+        visit = {}
+        cursor = 0
+        while cursor < len(floor):
+            node = floor[cursor]
+            visit[id(node)] = -1
+            for one in filter(node.nodes):
+                if one is None:
+                    continue
+                if id(one) in visit:
+                    continue
+                visit[id(one)] = -1
+                if one.type != self.type:
+                    result.append(one)
+                    continue
+                floor.append(one)
+            cursor += 1
+        return result
+
+    def shortest_link_path(self, target, filter=None):
+        if filter is None:
+            filter = self._filter
+        visit = {}
+        tree = [-1]
+        discovered = [self]
+        cursor = 0
+        reach = False
+        while cursor < len(discovered) and not reach:
+            node = discovered[cursor]
+            visit[id(node)] = -1
+            for one in filter(node.nodes):
+                if one is None:
+                    continue
+                if id(one) in visit:
+                    continue
+                visit[id(one)] = -1
+                discovered.append(one)
+                tree.append(cursor)
+                if one == target:
+                    reach = True
+                    break
+            cursor += 1
+        if reach:
+            result = []
+            cursor = tree.pop()
+            result.append(target)
+            while cursor >= 0:
+                result.append(discovered[cursor])
+                cursor = tree[cursor]
+            result.reverse()
+            return result
+        else:
+            return None
 
     def strip(self):
         if len(self.hole) == 0:
@@ -60,6 +155,14 @@ class GraphNode(object):
         self.hole.append(i)
         del self.index[id(node)]
         return self
+
+    def dual_link(self, node):
+        self.link(node)
+        node.link(self)
+
+    def dual_unlink(self, node):
+        self.unlink(node)
+        node.unlink(self)
 
     def _filter(self, nodes):
         return nodes
@@ -125,12 +228,12 @@ class GraphNode(object):
             next_level = []
         return self
 
-    def debug_data_encode(self, data):
+    def debug_data_encode(self, node, data):
         if data is None:
             return ""
         return data
 
-    def debug_data_decode(self, data):
+    def debug_data_decode(self, node, data):
         if len(data) == 0:
             return None
         return data
@@ -161,7 +264,7 @@ class GraphNode(object):
             node_id = int(line[0])
             node = GraphNode()
             node.type = int(line[1])
-            node.data = data_decode(base64.b64decode(line[2]))
+            node.data = data_decode(node, base64.b64decode(line[2]))
             self.link(node)
             id_node_map[node_id] = node
         for line in f:
@@ -183,7 +286,7 @@ class GraphNode(object):
             f.write("%d %d %s\n" % (
                 self.index[id(node)],
                 node.type,
-                base64.b64encode(data_encode(node.data)),
+                base64.b64encode(data_encode(node, node.data)),
             ))
         for node in self.nodes:
             if len(node.nodes) == 0:
